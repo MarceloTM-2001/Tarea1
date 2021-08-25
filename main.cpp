@@ -28,11 +28,38 @@ public:
 
   //Escribe una página de vuelta al archivo
   void writePage(Page page){
-      int begg=256*(page.index-1);
-      int final=256*(page.index);
-      string before;
+      string *copyarr=filecopier(256*(page.index-1),page.index);
+      string before=copyarr[0];
       string middle= writepageaux(page);
+      string after=copyarr[1];
+      fstream newFile;
+      newFile.open("archivo_resultado.txt",ios::out);
+      newFile<<before<<middle<<after<<endl;
+  }
+
+  //copia lo que se encuentra antes y después de un bloque del archivo
+  string* filecopier(int inicio,int fin){
+      string before;
       string after;
+      fstream newFile;
+      newFile.open("archivo_resultado.txt",ios::in);
+      char charcopy;
+      char limit[2]=",";
+      int pointer=0;
+      while(newFile.get(charcopy)){
+          if(pointer<inicio){
+              before+=charcopy;
+              if(charcopy==*limit){
+                  pointer+=1;
+              }
+          }else if(fin<=pointer){
+              after+=charcopy;
+          }else{
+              continue;
+          }
+      }
+      string copy[2]={before,after};
+      return copy;
   }
 
   //crea un string con los enteros a copiar en el archivo
