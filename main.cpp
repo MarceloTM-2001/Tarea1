@@ -28,39 +28,45 @@ public:
 
   //Escribe una página de vuelta al archivo
   void writePage(Page page){
-      string *copyarr=filecopier(256*(page.index-1),page.index);
-      string before=copyarr[0];
+      string before= filecopier(256*(page.index), true);
       string middle= writepageaux(page);
-      string after=copyarr[1];
+      string after=filecopier(256*(page.index+1), false);
       fstream newFile;
       newFile.open("archivo_resultado.txt",ios::out);
       newFile<<before<<middle<<after<<endl;
   }
 
   //copia lo que se encuentra antes y después de un bloque del archivo
-  string* filecopier(int inicio,int fin){
-      string before;
-      string after;
+  string filecopier(int marca,bool antes){
+      string resultado;
       fstream newFile;
       newFile.open("archivo_resultado.txt",ios::in);
       char charcopy;
       char limit[2]=",";
       int pointer=0;
       while(newFile.get(charcopy)){
-          if(pointer<inicio){
-              before+=charcopy;
-              if(charcopy==*limit){
-                  pointer+=1;
+          if(antes==true){
+              if(pointer<marca){
+                  resultado+=charcopy;
+                  if(charcopy==*limit){
+                      pointer+=1;
+                  }
+              }else {
+                  break;
               }
-          }else if(fin<=pointer){
-              after+=charcopy;
           }else{
-              continue;
+              if(marca<=pointer){
+                  resultado+=charcopy;
+              }else{
+                  if(charcopy==*limit){
+                      pointer+=1;
+                  }
+              }
           }
       }
-      string copy[2]={before,after};
-      return copy;
+      return resultado;
   }
+
 
   //crea un string con los enteros a copiar en el archivo
   string writepageaux(Page page){
@@ -75,8 +81,8 @@ public:
 
   //Lee una página del archivo y la añade a la memoria
   Page readPage(int index){
-      int begg=256*(index-1);//inicio de la página
-      int final=256*(index);//Final de la página
+      int begg=256*(index);//inicio de la página
+      int final=256*(index+1);//Final de la página
       int pointer=0;//entero por el que va del archivo
       int indice =0;//Enteros escribiendose en la pçagina
       string entero;
@@ -90,7 +96,7 @@ public:
           if (pointer==final){
               File.close();
               break;
-          }else if(pointer<=begg){//Estamos en la página
+          }else if(begg<=pointer){//Estamos en la página
               if(copy==*limit){
                   pointer+=1;
                   newpage.arr[indice]=atoi(entero.c_str());
@@ -110,20 +116,23 @@ public:
   }
 
   //Busca un elemento del archivo dentro de los archivos en memoria
-  int Pagedarray(int index){
+  int *Pagedarray(int index){
       float dif=index/256;//encontrar la página necesaria
       int page = round(dif);//redondeo ya que la pagina es un entero
 
       for(int i=0;i<6;i++){//Revisar memoria por la página deseada
-          Page checkPage = Pages[i];
-          if(checkPage.index==page){ //La pagina está en memoria
-              checkPage.used(true);//Registra que la página se usó
-              return checkPage.arr[index-(256*page)];//devolver el índice correspondiente
+          if(Pages[i].index==page){ //La pagina está en memoria
+              Pages[i].used(true);//Registra que la página se usó
+              return &Pages[i].arr[index-(256*page)];//devolver el índice correspondiente
           }
-          checkPage.used(false); //Registra que la página no se usó
+          Pages[i].used(false); //Registra que la página no se usó
       }
       Page position=PageFault(page);//La página no está en memoria
-      return position.arr[index-(256*page)];
+      for(int i=0;i<6;i++){
+          if(Pages[i].index==page){
+              return &Pages[i].arr[index-(256*page)];//devolver el índice correspondiente
+          }
+      }
   }
 
 
@@ -140,16 +149,27 @@ public:
   //Busca la página menos usadad de la memoria
   int searchexchange(){
       int leastused= Pages[0].use;
+      int leastusedindex=0;
       int i;
       for( i=1;i<6;i++){
-          if(Pages[i].use<leastused){
+          if(Pages[i].use<=leastused){
               leastused=Pages[i].use;
+              leastusedindex=i;
               continue;
           }
       }
-      return i;
+      return leastusedindex;
   }
 
+  //LLena las primeras páginas del array
+  void Fillarray(){
+      fstream File;
+      File.open("archivo_resultado.txt",ios::in);
+      for(int i=0;i<6;i++){
+          Page page=readPage(i);
+          Pages[i]=page;
+      }
+  }
 
   //Cantidad de enteros del archivo completo
   void filesize(){
@@ -184,7 +204,6 @@ public:
 class QuickSort{
 public:
     MemoryManager MMU;
-
     //swap cambia las variables en caso de ser menor que el pivot
     void swap(int*a,int*b){
         int t = *a;
@@ -195,27 +214,29 @@ public:
 
     // se encarga de hacer la partición y el ordenamiento en base al pivot
     // (se decidió que el pivot fuera el último elemento del arreglo)
-    int partition(int arr[],int low, int high){
+    int partition(int low, int high){
         int pivot;
+        pivot=*MMU.Pagedarray(high);
         int i =(low-1);
         for (int j=low;j <=high-1;j++){
-            if(arr[j]<pivot){
+            if(*MMU.Pagedarray(j)<pivot){
                 i++;
-                swap(&arr[i],&arr[j]);
+                swap(MMU.Pagedarray(i),MMU.Pagedarray(j));
             }
         }
-        swap(&arr[i+1],&arr[high]);
+        swap(MMU.Pagedarray(i+1),MMU.Pagedarray(high));
         return(i+1);
     }
 
     //Maneja el ordenamiento
-    void quicksort(int arr[],int low, int high){
+    void quicksort(int low, int high){
         if(low<high){
-            int pi = partition(arr,low,high);
+            int pi = partition(low,high);
 
-            quicksort(arr,low,pi-1);
-            quicksort(arr,pi+1,high);
+            quicksort(low,pi-1);
+            quicksort(pi+1,high);
         }
+
     }
 
     //Imprime un arreglo en consola
@@ -227,15 +248,22 @@ public:
         }
     }
 
+
     //Builder que corre el algoritmo automáticamente
-    QuickSort(int arr[],int low,int high){
-        quicksort(arr,low,high);
+    QuickSort(MemoryManager MMU,int low,int high){
+        this->MMU=MMU;
+        quicksort(low,high);
+        cout<<"Fin"<<endl;
     }
 
 };
 
 
 int main() {
-    int prueb;
-    return 0;
+    MemoryManager MMU;
+    MMU.filesize();
+    MMU.copyfile();
+    MMU.Fillarray();
+    QuickSort QS(MMU,0,MMU.size-1);
 }
+
