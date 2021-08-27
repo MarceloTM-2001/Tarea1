@@ -198,6 +198,13 @@ public:
       Newfile.close();
       OldFile.close();
   }
+
+  //Copia las páginas ya ordenadas que quedan en memoria
+  void CopyFinal(){
+      for(int i=0;i<6;i++){
+          writePage(this->Pages[i]);
+      }
+  }
 };
 
 //Clase que incluye el quick sort
@@ -236,7 +243,6 @@ public:
             quicksort(low,pi-1);
             quicksort(pi+1,high);
         }
-
     }
 
     //Imprime un arreglo en consola
@@ -253,7 +259,7 @@ public:
     QuickSort(MemoryManager MMU,int low,int high){
         this->MMU=MMU;
         quicksort(low,high);
-        cout<<"Fin"<<endl;
+        this->MMU.CopyFinal();
     }
 
 };
