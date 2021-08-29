@@ -23,8 +23,9 @@ public:
 // dato que se le pida dentro del archivo
 class MemoryManager{
 public:
-  Page Pages[6];//Memoria
-  int size=0;//Cantidad total de números
+    string File;
+    Page Pages[6];//Memoria
+    int size=0;//Cantidad total de números
 
   //Escribe una página de vuelta al archivo
   void writePage(Page page){
@@ -189,7 +190,7 @@ public:
   void copyfile(){
       fstream OldFile;
       fstream Newfile;
-      OldFile.open("C:\\Users\\Lenovo\\CLionProjects\\untitled1\\PruebaT1.txt",ios::in);
+      OldFile.open(this->File,ios::in);
       Newfile.open("archivo_resultado.txt",ios::out);
       string archivo;
       while(getline(OldFile,archivo)){
@@ -211,6 +212,8 @@ public:
 class QuickSort{
 public:
     MemoryManager MMU;
+    string File;
+
     //swap cambia las variables en caso de ser menor que el pivot
     void swap(int*a,int*b){
         int t = *a;
@@ -266,7 +269,11 @@ public:
 
 
 int main() {
+    string File;
+    cout<<"Escriba la dirección del archivo a ordenar: "<<endl;
+    cin>>File;
     MemoryManager MMU;
+    MMU.File=File;
     MMU.filesize();
     MMU.copyfile();
     MMU.Fillarray();
